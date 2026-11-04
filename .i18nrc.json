@@ -1,0 +1,7 @@
+{
+  "prefix": "statusGrid",
+  "paths": {
+    "statusGrid": "."
+  },
+  "translations": []
+}

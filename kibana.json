@@ -1,0 +1,14 @@
+{
+  "id": "statusGrid",
+  "version": "1.0.0",
+  "kibanaVersion": "kibana",
+  "owner": {
+    "name": "Status Grid",
+    "githubTeam": ""
+  },
+  "description": "Dashboard panel that shows one colored tile per entity (service, host, queue...) based on its latest status or a metric threshold.",
+  "server": false,
+  "ui": true,
+  "requiredPlugins": ["embeddable", "uiActions", "data", "dataViews"],
+  "optionalPlugins": []
+}
