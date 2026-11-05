@@ -1,0 +1,14 @@
+{
+  "id": "dashboardHeader",
+  "version": "1.0.0",
+  "kibanaVersion": "kibana",
+  "owner": {
+    "name": "Dashboard Header",
+    "githubTeam": ""
+  },
+  "description": "Dashboard title and name panel with theme-aware colors, bundled fonts and presets that read well in both light and dark themes.",
+  "server": false,
+  "ui": true,
+  "requiredPlugins": ["embeddable", "uiActions"],
+  "optionalPlugins": []
+}

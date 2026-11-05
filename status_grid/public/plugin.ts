@@ -2,9 +2,7 @@ import type { CoreSetup, CoreStart, Plugin } from '@kbn/core/public';
 import {
   ADD_PANEL_TRIGGER,
   ADD_STATUS_GRID_ACTION_ID,
-  ADD_STYLED_TITLE_ACTION_ID,
   STATUS_GRID_EMBEDDABLE_TYPE,
-  STYLED_TITLE_EMBEDDABLE_TYPE,
 } from '../common';
 import type {
   StatusGridPluginSetup,
@@ -29,14 +27,6 @@ export class StatusGridPlugin
       ]);
       return getStatusGridFactory({ core: coreStart, ...deps });
     });
-
-    embeddable.registerEmbeddablePublicDefinition(STYLED_TITLE_EMBEDDABLE_TYPE, async () => {
-      const [{ getStyledTitleFactory }, [coreStart, deps]] = await Promise.all([
-        import('./title/styled_title_embeddable'),
-        core.getStartServices(),
-      ]);
-      return getStyledTitleFactory({ core: coreStart, ...deps });
-    });
     return {};
   }
 
@@ -48,16 +38,6 @@ export class StatusGridPlugin
       async () => {
         const { createAddStatusGridAction } = await import('./actions/add_status_grid_action');
         return createAddStatusGridAction({ core, ...deps });
-      }
-    );
-
-    // Adds "Styled title" to the same menu.
-    deps.uiActions.addTriggerActionAsync(
-      ADD_PANEL_TRIGGER,
-      ADD_STYLED_TITLE_ACTION_ID,
-      async () => {
-        const { createAddStyledTitleAction } = await import('./actions/add_styled_title_action');
-        return createAddStyledTitleAction({ core, ...deps });
       }
     );
     return {};

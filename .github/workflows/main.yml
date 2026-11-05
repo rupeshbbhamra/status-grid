@@ -1,9 +1,13 @@
-# Builds an installable Kibana plugin zip on GitHub's servers.
+# Builds installable Kibana plugin zips on GitHub's servers — one zip per plugin folder.
 #
-# Run it: GitHub repo → Actions → "Build Kibana plugin" → Run workflow.
-# Download: open the finished run → Artifacts → statusGrid-<version>.
+#   status_grid/       → statusGrid-<version>.zip
+#   dashboard_header/  → dashboardHeader-<version>.zip
 #
-# Pushing a tag such as v1.0.0 also builds it and attaches the zip to a GitHub Release.
+# Runs automatically on every push to main that changes a plugin, or manually:
+# GitHub repo → Actions → "Build Kibana plugin" → Run workflow.
+#
+# Download: open the finished run → Artifacts. GitHub wraps each artifact in its own zip,
+# so unzip the download once; the zip inside is the file you install with kibana-plugin.
 
 name: Build Kibana plugin
 
@@ -16,16 +20,16 @@ on:
         default: 9.5.4
   push:
     tags: ['v*']
-    # Also build on every push to main that changes the plugin itself.
     branches: [main]
-    paths: ['kibana.json', 'common/**', 'public/**', 'package.json', 'tsconfig.json', '.github/workflows/**']
+    paths: ['status_grid/**', 'dashboard_header/**', '.github/workflows/**']
 
 permissions:
-  contents: write # needed only to attach the zip to a release on tag pushes
+  contents: write # needed only to attach zips to a release on tag pushes
 
 env:
   KIBANA_VERSION: ${{ inputs.kibana_version || '9.5.4' }}
-  PLUGIN_DIR: status_grid
+  # Space-separated plugin folders in this repo. Kibana is bootstrapped once and all are built.
+  PLUGIN_DIRS: status_grid dashboard_header
 
 jobs:
   build:
@@ -74,37 +78,52 @@ jobs:
           echo "Kibana uses: $PM"
           echo "pm=$PM" >> "$GITHUB_OUTPUT"
 
-      - name: Copy plugin into Kibana
+      - name: Copy plugins into Kibana
         run: |
-          mkdir -p "kibana/plugins/${PLUGIN_DIR}"
-          rsync -a --exclude .git --exclude .github --exclude build --exclude node_modules \
-            plugin-src/ "kibana/plugins/${PLUGIN_DIR}/"
-          ls -la "kibana/plugins/${PLUGIN_DIR}"
+          for dir in $PLUGIN_DIRS; do
+            mkdir -p "kibana/plugins/$dir"
+            rsync -a --exclude build --exclude node_modules "plugin-src/$dir/" "kibana/plugins/$dir/"
+            echo "== $dir"; ls "kibana/plugins/$dir"
+          done
 
-      - name: Bootstrap Kibana (slow, ~20–40 min)
+      - name: Bootstrap Kibana (slow)
         working-directory: kibana
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         run: ${{ steps.pm.outputs.pm }} kbn bootstrap
 
-      - name: Build plugin zip
-        working-directory: kibana/plugins/${{ env.PLUGIN_DIR }}
+      - name: Build plugin zips
+        working-directory: kibana/plugins
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
-          node ../../scripts/plugin_helpers build --kibana-version "${KIBANA_VERSION}"
-          ls -la build
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          for dir in $PLUGIN_DIRS; do
+            echo "::group::Build $dir"
+            (cd "$dir" && node ../../scripts/plugin_helpers build --kibana-version "${KIBANA_VERSION}")
+            cp "$dir"/build/*.zip "$GITHUB_WORKSPACE/out/"
+            echo "::endgroup::"
+          done
+          ls -la "$GITHUB_WORKSPACE/out"
 
-      - name: Upload zip
+      - name: Upload statusGrid zip
         uses: actions/upload-artifact@v4
         with:
           name: statusGrid-${{ env.KIBANA_VERSION }}
-          path: kibana/plugins/${{ env.PLUGIN_DIR }}/build/*.zip
+          path: out/statusGrid-*.zip
           if-no-files-found: error
           retention-days: 30
 
-      - name: Attach zip to release (tag pushes only)
+      - name: Upload dashboardHeader zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboardHeader-${{ env.KIBANA_VERSION }}
+          path: out/dashboardHeader-*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach zips to release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: kibana/plugins/${{ env.PLUGIN_DIR }}/build/*.zip
+          files: out/*.zip

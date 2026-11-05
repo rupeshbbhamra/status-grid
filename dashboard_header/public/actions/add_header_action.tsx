@@ -1,31 +1,28 @@
 import { i18n } from '@kbn/i18n';
-import { ADD_PANEL_VISUALIZATION_GROUP } from '@kbn/embeddable-plugin/public';
+import { ADD_PANEL_ANNOTATION_GROUP } from '@kbn/embeddable-plugin/public';
 import {
   apiCanAddNewPanel,
+  apiPublishesDescription,
   apiPublishesTimeRange,
+  apiPublishesTitle,
   type EmbeddableApiContext,
 } from '@kbn/presentation-publishing';
 import { openLazyFlyout } from '@kbn/presentation-util';
 import { IncompatibleActionError } from '@kbn/ui-actions-plugin/public';
-import {
-  ADD_STYLED_TITLE_ACTION_ID,
-  applyPreset,
-  DEFAULT_TITLE_CONFIG,
-  STYLED_TITLE_EMBEDDABLE_TYPE,
-} from '../../common';
+import { ADD_DASHBOARD_HEADER_ACTION_ID, DASHBOARD_HEADER_TYPE, DEFAULT_HEADER } from '../../common';
 import type { Services } from '../types';
-import type { StyledTitleSerializedState } from '../title/styled_title_embeddable';
+import type { HeaderSerializedState } from '../header/header_embeddable';
 
-export const createAddStyledTitleAction = (services: Services) => ({
-  id: ADD_STYLED_TITLE_ACTION_ID,
-  grouping: [ADD_PANEL_VISUALIZATION_GROUP],
-  order: 9,
+export const createAddHeaderAction = (services: Services) => ({
+  id: ADD_DASHBOARD_HEADER_ACTION_ID,
+  grouping: [ADD_PANEL_ANNOTATION_GROUP],
+  order: 30,
   getIconType: () => 'visText',
   getDisplayName: () =>
-    i18n.translate('statusGrid.addTitle.displayName', { defaultMessage: 'Styled title' }),
+    i18n.translate('dashboardHeader.add.displayName', { defaultMessage: 'Dashboard header' }),
   getDisplayNameTooltip: () =>
-    i18n.translate('statusGrid.addTitle.tooltip', {
-      defaultMessage: 'A dashboard heading or banner with your own colors, size and icon.',
+    i18n.translate('dashboardHeader.add.tooltip', {
+      defaultMessage: "Shows the dashboard's name as a styled title, readable in light and dark themes.",
     }),
   isCompatible: async ({ embeddable }: EmbeddableApiContext) => apiCanAddNewPanel(embeddable),
   execute: async ({ embeddable, returnFocus }: EmbeddableApiContext) => {
@@ -37,20 +34,24 @@ export const createAddStyledTitleAction = (services: Services) => ({
       returnFocus,
       flyoutProps: { size: 'm' },
       loadContent: async ({ closeFlyout, ariaLabelledBy }) => {
-        const { StyledTitleEditor } = await import('../title/styled_title_editor');
+        const { HeaderEditor } = await import('../header/header_editor');
         return (
-          <StyledTitleEditor
+          <HeaderEditor
             ariaLabelledBy={ariaLabelledBy}
             isCreate
-            initialConfig={applyPreset(DEFAULT_TITLE_CONFIG, 'blue-banner')}
+            initialConfig={DEFAULT_HEADER}
+            dashboard={{
+              title: apiPublishesTitle(embeddable) ? embeddable.title$.value : undefined,
+              description: apiPublishesDescription(embeddable) ? embeddable.description$.value : undefined,
+            }}
             timeRange={apiPublishesTimeRange(embeddable) ? embeddable.timeRange$.value : undefined}
             onCancel={closeFlyout}
             onSave={(config) => {
               closeFlyout();
-              embeddable.addNewPanel<StyledTitleSerializedState>(
+              embeddable.addNewPanel<HeaderSerializedState>(
                 {
-                  panelType: STYLED_TITLE_EMBEDDABLE_TYPE,
-                  // Start without the panel frame so it looks like part of the dashboard.
+                  panelType: DASHBOARD_HEADER_TYPE,
+                  // No panel frame, so it reads as part of the dashboard rather than a box on it.
                   serializedState: { ...config, hide_title: true, hide_border: true },
                 },
                 { displaySuccessMessage: true }

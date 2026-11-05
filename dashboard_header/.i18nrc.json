@@ -1,0 +1,7 @@
+{
+  "prefix": "dashboardHeader",
+  "paths": {
+    "dashboardHeader": "."
+  },
+  "translations": []
+}
