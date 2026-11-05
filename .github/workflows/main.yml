@@ -1,0 +1,107 @@
+# Builds an installable Kibana plugin zip on GitHub's servers.
+#
+# Run it: GitHub repo → Actions → "Build Kibana plugin" → Run workflow.
+# Download: open the finished run → Artifacts → statusGrid-<version>.
+#
+# Pushing a tag such as v1.0.0 also builds it and attaches the zip to a GitHub Release.
+
+name: Build Kibana plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      kibana_version:
+        description: Kibana version to build for (must match your Kibana exactly)
+        required: true
+        default: 9.5.4
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # needed only to attach the zip to a release on tag pushes
+
+env:
+  KIBANA_VERSION: ${{ inputs.kibana_version || '9.5.4' }}
+  PLUGIN_DIR: status_grid
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out plugin source
+        uses: actions/checkout@v4
+        with:
+          path: plugin-src
+
+      # Kibana's dependencies need far more disk than a runner has free by default.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune --all --force || true
+          df -h /
+
+      # Extra memory headroom; the Kibana bootstrap and optimizer are memory hungry.
+      - name: Add swap
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 12G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
+      - name: Check out Kibana v${{ env.KIBANA_VERSION }}
+        run: git clone --depth 1 --branch "v${KIBANA_VERSION}" https://github.com/elastic/kibana.git kibana
+
+      - name: Set up Node (version from Kibana's .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: kibana/.nvmrc
+
+      # Kibana 9.5.4 and earlier use yarn; 9.5.6 and later use pnpm. Corepack picks the right one.
+      - name: Detect package manager
+        id: pm
+        working-directory: kibana
+        run: |
+          corepack enable
+          PM=$(node -p "(require('./package.json').packageManager || 'yarn@1').split('@')[0]")
+          echo "Kibana uses: $PM"
+          echo "pm=$PM" >> "$GITHUB_OUTPUT"
+
+      - name: Copy plugin into Kibana
+        run: |
+          mkdir -p "kibana/plugins/${PLUGIN_DIR}"
+          rsync -a --exclude .git --exclude .github --exclude build --exclude node_modules \
+            plugin-src/ "kibana/plugins/${PLUGIN_DIR}/"
+          ls -la "kibana/plugins/${PLUGIN_DIR}"
+
+      - name: Bootstrap Kibana (slow, ~20–40 min)
+        working-directory: kibana
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: ${{ steps.pm.outputs.pm }} kbn bootstrap
+
+      - name: Build plugin zip
+        working-directory: kibana/plugins/${{ env.PLUGIN_DIR }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: |
+          node ../../scripts/plugin_helpers build --kibana-version "${KIBANA_VERSION}"
+          ls -la build
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: statusGrid-${{ env.KIBANA_VERSION }}
+          path: kibana/plugins/${{ env.PLUGIN_DIR }}/build/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach zip to release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: kibana/plugins/${{ env.PLUGIN_DIR }}/build/*.zip
