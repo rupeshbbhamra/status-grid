@@ -14,10 +14,10 @@ import {
   type WithAllKeys,
 } from '@kbn/presentation-publishing';
 import { openLazyFlyout } from '@kbn/presentation-util';
-import { ON_APPLY_FILTER } from '@kbn/ui-actions-plugin/common/trigger_ids';
 import {
   DEFAULT_CONFIG,
   getConfigProblem,
+  ON_APPLY_FILTER,
   STATUS_GRID_EMBEDDABLE_TYPE,
   type StatusCell,
   type StatusGridConfig,

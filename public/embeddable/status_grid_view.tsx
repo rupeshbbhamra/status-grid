@@ -35,10 +35,10 @@ export function StatusGridView({ cells, config, configProblem, onTileClick }: Pr
   const { euiTheme } = useEuiTheme();
 
   const palette: Record<StatusLevel, { bg: string; fg: string; dot: string }> = {
-    ok: { bg: euiTheme.colors.success, fg: euiTheme.colors.emptyShade, dot: 'success' },
-    warning: { bg: euiTheme.colors.warning, fg: euiTheme.colors.ink, dot: 'warning' },
-    critical: { bg: euiTheme.colors.danger, fg: euiTheme.colors.emptyShade, dot: 'danger' },
-    unknown: { bg: euiTheme.colors.lightShade, fg: euiTheme.colors.ink, dot: 'subdued' },
+    ok: { bg: euiTheme.colors.success, fg: euiTheme.colors.textGhost, dot: 'success' },
+    warning: { bg: euiTheme.colors.warning, fg: euiTheme.colors.textInk, dot: 'warning' },
+    critical: { bg: euiTheme.colors.danger, fg: euiTheme.colors.textGhost, dot: 'danger' },
+    unknown: { bg: euiTheme.colors.lightShade, fg: euiTheme.colors.textInk, dot: 'subdued' },
   };
 
   if (configProblem) {

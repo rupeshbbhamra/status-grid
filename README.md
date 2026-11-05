@@ -12,6 +12,16 @@ or anything else, colored green / yellow / red.
 - Click a tile to filter the whole dashboard to that entity.
 - Summary counts on top, worst-first ordering, hover for value, last-seen time and doc count.
 
+### Styled title panel (included)
+
+The same plugin also adds **Add panel → Styled title**: a dashboard heading or banner with
+your own title and subtitle text, font size, weight and font, alignment, ALL CAPS, colors
+(title, subtitle, background, left accent bar), an icon, and optionally the dashboard's
+current time range. Eight quick-style presets (blue banner, section divider, NOC wall
+screen, critical alert, warning note, healthy green, executive purple, plain) change the
+look without touching your text. New titles start with Kibana's panel frame hidden, so
+they sit on the dashboard like a native heading.
+
 Built for **Kibana 9.5.4** (checked against the 9.5.4 source APIs).
 
 ## Folder layout
@@ -26,7 +36,20 @@ public/actions/             "Add panel → Status grid" menu action
 sample_data/                script that loads demo data to try it out
 ```
 
-## Build it
+## Build it on GitHub (easiest)
+
+`.github/workflows/build-plugin.yml` builds the installable zip on GitHub's servers.
+
+1. Push this folder to a GitHub repo (private is fine), with `kibana.json` at the repo root.
+2. **Actions → Build Kibana plugin → Run workflow**, enter your exact Kibana version (default 9.5.4).
+3. Wait ~30–60 minutes. Open the finished run → **Artifacts → statusGrid-9.5.4** to download.
+4. GitHub wraps artifacts in a zip: unzip the download once to get `statusGrid-9.5.4.zip` —
+   that inner file is what you install.
+
+Pushing a tag such as `v1.0.0` also builds it and attaches `statusGrid-9.5.4.zip` directly
+to a GitHub Release, with no extra unzip step.
+
+## Build it on your own machine
 
 Kibana plugins must be built inside a Kibana source checkout of **the exact version**
 you run. For 9.5.4:
