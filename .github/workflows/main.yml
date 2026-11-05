@@ -16,6 +16,9 @@ on:
         default: 9.5.4
   push:
     tags: ['v*']
+    # Also build on every push to main that changes the plugin itself.
+    branches: [main]
+    paths: ['kibana.json', 'common/**', 'public/**', 'package.json', 'tsconfig.json', '.github/workflows/**']
 
 permissions:
   contents: write # needed only to attach the zip to a release on tag pushes
